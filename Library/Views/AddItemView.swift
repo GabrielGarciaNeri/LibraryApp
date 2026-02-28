@@ -11,10 +11,17 @@ struct AddItemView: View {
     @State private var title = ""
     @State private var author = ""
     @State private var descriptionText = ""
+    @State private var isFavorite = false
+    @State private var currentProgress = 1
     @State private var totalCount = 1
     @State private var category = "Manhwa"
+    @State private var subcategory: String = "General"
 
     let categories = ["Book", "Manga", "Manhwa", "Manhua", "Comic"]
+    
+    var subcategories: [String] {
+        Subcategories.map[category] ?? ["General"]
+    }
 
     var body: some View {
         NavigationStack {
@@ -29,8 +36,14 @@ struct AddItemView: View {
                 }
 
                 Section("Progress") {
+                    TextField ("Current Page/Chapter", value: $currentProgress, format: .number)
+                        .keyboardType(.numberPad)
                     TextField("Total Pages/Chapters", value: $totalCount, format: .number)
                         .keyboardType(.numberPad)
+                }
+                
+                Section("Favorite") {
+                    Toggle("Mark as Favorite ⭐", isOn: $isFavorite)
                 }
 
                 Section("Category") {
@@ -39,7 +52,19 @@ struct AddItemView: View {
                             Text(cat)
                         }
                     }
+                    .onChange(of:category) { _ in
+                        subcategory = subcategories.first ?? "General"
+                    }
                 }
+                
+                Section("Subcategory") {
+                    Picker("Subtype", selection: $subcategory) {
+                        ForEach(subcategories, id: \.self) { sub in
+                            Text(sub)
+                        }
+                    }
+                }
+
             }
             .navigationTitle("Add New Item")
 
@@ -68,8 +93,9 @@ struct AddItemView: View {
             author: author,
             shortDescription: descriptionText,
             category: category,
-            totalCount: totalCount
-            
+            subcategory: subcategory,
+            totalCount: totalCount,
+            isFavorite: isFavorite
         )
 
         context.insert(newItem)

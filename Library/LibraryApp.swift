@@ -7,7 +7,7 @@ import SwiftData
 struct LibraryApp: App {
     var body: some Scene {
         WindowGroup {
-            HomeView()
+            MainTabView()
         }
         .modelContainer(for: LibraryItem.self)
     }

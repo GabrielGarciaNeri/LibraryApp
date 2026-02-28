@@ -9,6 +9,8 @@ class LibraryItem {
     var shortDescription: String
 
     var category: String
+    var subcategory: String
+
     var status: String
 
     var totalCount: Int
@@ -22,6 +24,7 @@ class LibraryItem {
         author: String,
         shortDescription: String = "",
         category: String,
+        subcategory: String = "General",
         status: String = "Planning",
         totalCount: Int,
         currentProgress: Int = 0,
@@ -33,6 +36,7 @@ class LibraryItem {
         self.shortDescription = shortDescription
 
         self.category = category
+        self.subcategory = subcategory
         self.status = status
 
         self.totalCount = totalCount
@@ -42,6 +46,7 @@ class LibraryItem {
         self.lastUpdated = lastUpdated
     }
 }
+
 
 
 
