@@ -3,149 +3,204 @@ import SwiftData
 
 struct FavoritesView: View {
 
-    @Environment(\.modelContext) private var context
+    enum FavoritesMode {
+        case normal
+        case searching
+    }
+
+    enum SortOption: String, CaseIterable {
+        case titleAZ = "Title A-Z"
+        case titleZA = "Title Z-A"
+        case authorAZ = "Author A-Z"
+        case authorZA = "Author Z-A"
+        case progressLowHigh = "Progress Low-High"
+        case progressHighLow = "Progress High-Low"
+    }
 
     @Query(filter: #Predicate<LibraryItem> { $0.isFavorite })
     private var favorites: [LibraryItem]
 
+    @State private var mode: FavoritesMode = .normal
     @State private var showGrid = true
     @State private var searchText = ""
+    @State private var selectedMainCategory: String = "All"
+    @State private var selectedSort: SortOption = .titleAZ
     @State private var selectedItem: LibraryItem?
 
+    let categories = ["All","Book","Manga","Manhwa","Manhua","Comic"]
+
     var filteredFavorites: [LibraryItem] {
-        favorites.filter {
-            searchText.isEmpty ||
-            $0.title.localizedCaseInsensitiveContains(searchText) ||
-            $0.author.localizedCaseInsensitiveContains(searchText)
-        }
+        favorites
+            .filter {
+                selectedMainCategory == "All" ||
+                $0.category == selectedMainCategory
+            }
+            .filter {
+                searchText.isEmpty ||
+                $0.title.localizedCaseInsensitiveContains(searchText) ||
+                $0.author.localizedCaseInsensitiveContains(searchText)
+            }
+            .sorted(by: sortComparator)
     }
 
     var body: some View {
 
         NavigationStack {
 
-            Group {
-                if favorites.isEmpty {
-                    ContentUnavailableView(
-                        "No Favorites Yet ⭐",
-                        systemImage: "star",
-                        description: Text("Mark items as favorite to see them here.")
+            VStack(spacing: 0) {
+                if !favorites.isEmpty {
+                    CategoryChipsView(
+                        categories: categories,
+                        selected: $selectedMainCategory
                     )
-                } else {
-                    Group {
-                        if showGrid {
-                            LibraryGridView(
-                                items: filteredFavorites,
-                                selectedItem: $selectedItem,
-                                pendingDeleteID: .constant(nil),
-                                isEditing: .constant(false)
-                            )
-                        } else {
-                            LibraryListView(
-                                items: filteredFavorites,
-                                selectedItem: $selectedItem
-                            )
+                }
+
+                Group {
+                    if favorites.isEmpty {
+                        ContentUnavailableView(
+                            "No Favorites Yet ⭐",
+                            systemImage: "star",
+                            description: Text("Mark items as favorite to see them here.")
+                        )
+                    } else if filteredFavorites.isEmpty {
+                        ContentUnavailableView(
+                            "No Matching Favorites",
+                            systemImage: "line.3.horizontal.decrease.circle",
+                            description: Text("Try a different category or search text.")
+                        )
+                    } else {
+                        Group {
+                            if showGrid {
+                                LibraryGridView(
+                                    items: filteredFavorites,
+                                    selectedItem: $selectedItem,
+                                    isEditing: .constant(false)
+                                )
+                            } else {
+                                LibraryListView(
+                                    items: filteredFavorites,
+                                    selectedItem: $selectedItem
+                                )
+                            }
                         }
                     }
-
-//                    Group {
-//                        if showGrid {
-//                            gridView
-//                        } else {
-//                            listView
-//                        }
-//                    }
                 }
             }
+            .background(Color.libraryBackground)
             .navigationTitle("Favorites ⭐")
             .toolbar {
-                Button {
-                    showGrid.toggle()
-                } label: {
-                    Image(systemName:
-                        showGrid
-                        ? "list.bullet"
-                        : "square.grid.2x2")
+                ToolbarItem(placement: .topBarTrailing) {
+                    HStack(spacing: 16) {
+                        if mode == .searching {
+                            HStack {
+                                Image(systemName: "magnifyingglass")
+
+                                TextField("Search title or author", text: $searchText)
+
+                                Button("Cancel") {
+                                    withAnimation {
+                                        searchText = ""
+                                        mode = .normal
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 10)
+                            .frame(width: 260)
+                            .transition(.move(edge: .trailing))
+
+                            Menu {
+                                sortMenuContent
+                            } label: {
+                                Image(systemName: "line.3.horizontal.decrease.circle")
+                            }
+                        } else {
+                            Menu {
+                                sortMenuContent
+                            } label: {
+                                Image(systemName: "line.3.horizontal.decrease.circle")
+                            }
+
+                            Button {
+                                showGrid.toggle()
+                            } label: {
+                                Image(systemName:
+                                    showGrid
+                                    ? "list.bullet"
+                                    : "square.grid.2x2")
+                            }
+
+                            Button {
+                                withAnimation(.easeInOut) {
+                                    mode = .searching
+                                }
+                            } label: {
+                                Image(systemName: "magnifyingglass")
+                            }
+                        }
+                    }
                 }
             }
-            .searchable(text: $searchText)
             .navigationDestination(item: $selectedItem) {
                 ItemDetailView(item: $0)
             }
         }
     }
 
-//    var listView: some View {
-//        List(filteredFavorites) { item in
-//
-//            VStack(alignment: .leading, spacing: 6) {
-//
-//                HStack {
-//                    Text(item.title).font(.headline)
-//
-//                    Spacer()
-//
-//                    Button {
-//                        item.isFavorite.toggle()
-//                    } label: {
-//                        Image(systemName:"star.fill")
-//                            .foregroundStyle(.yellow)
-//                    }
-//                }
-//
-//                Text(item.author)
-//                    .foregroundColor(.gray)
-//
-//                ProgressBarView(
-//                    current: item.currentProgress,
-//                    total: item.totalCount
-//                )
-//            }
-//            .contentShape(Rectangle())
-//            .onTapGesture {
-//                selectedItem = item
-//            }
-//        }
-//    }
-//
-//    var gridView: some View {
-//
-//        ScrollView {
-//            LazyVGrid(columns: [GridItem(.adaptive(minimum: 140))]) {
-//
-//                ForEach(filteredFavorites) { item in
-//
-//                    VStack(spacing: 8) {
-//
-//                        Image(systemName:"book.fill")
-//                            .resizable()
-//                            .scaledToFit()
-//                            .frame(height:70)
-//
-//                        Text(item.title)
-//                            .font(.headline)
-//                            .lineLimit(2)
-//
-//                        Text(item.author)
-//                            .font(.caption)
-//                            .foregroundColor(.gray)
-//
-//                        ProgressBarView(
-//                            current: item.currentProgress,
-//                            total: item.totalCount
-//                        )
-//                    }
-//                    .frame(width:150,height:190)
-//                    .background(Color(.systemGray6))
-//                    .cornerRadius(14)
-//                    .onTapGesture {
-//                        selectedItem = item
-//                    }
-//                }
-//            }
-//            .padding()
-//        }
-//    }
+    @ViewBuilder
+    private var sortMenuContent: some View {
+        ForEach(SortOption.allCases, id: \.self) { option in
+            Button {
+                selectedSort = option
+            } label: {
+                if selectedSort == option {
+                    Label(option.rawValue, systemImage: "checkmark")
+                } else {
+                    Text(option.rawValue)
+                }
+            }
+        }
+    }
+
+    private func sortComparator(_ lhs: LibraryItem, _ rhs: LibraryItem) -> Bool {
+        switch selectedSort {
+        case .titleAZ:
+            let compare = lhs.title.localizedCaseInsensitiveCompare(rhs.title)
+            if compare == .orderedSame {
+                return lhs.author.localizedCaseInsensitiveCompare(rhs.author) == .orderedAscending
+            }
+            return compare == .orderedAscending
+        case .titleZA:
+            let compare = lhs.title.localizedCaseInsensitiveCompare(rhs.title)
+            if compare == .orderedSame {
+                return lhs.author.localizedCaseInsensitiveCompare(rhs.author) == .orderedDescending
+            }
+            return compare == .orderedDescending
+        case .authorAZ:
+            let compare = lhs.author.localizedCaseInsensitiveCompare(rhs.author)
+            if compare == .orderedSame {
+                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+            }
+            return compare == .orderedAscending
+        case .authorZA:
+            let compare = lhs.author.localizedCaseInsensitiveCompare(rhs.author)
+            if compare == .orderedSame {
+                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedDescending
+            }
+            return compare == .orderedDescending
+        case .progressLowHigh:
+            let lhsValue = Double(lhs.currentProgress) / Double(max(lhs.totalCount, 1))
+            let rhsValue = Double(rhs.currentProgress) / Double(max(rhs.totalCount, 1))
+            if lhsValue == rhsValue {
+                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+            }
+            return lhsValue < rhsValue
+        case .progressHighLow:
+            let lhsValue = Double(lhs.currentProgress) / Double(max(lhs.totalCount, 1))
+            let rhsValue = Double(rhs.currentProgress) / Double(max(rhs.totalCount, 1))
+            if lhsValue == rhsValue {
+                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+            }
+            return lhsValue > rhsValue
+        }
+    }
 }
-
-

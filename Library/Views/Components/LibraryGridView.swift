@@ -7,10 +7,10 @@ struct LibraryGridView: View {
     let items: [LibraryItem]
 
     @Binding var selectedItem: LibraryItem?
-    @Binding var pendingDeleteID: PersistentIdentifier?
     @Binding var isEditing: Bool
 
     @Environment(\.modelContext) private var context
+    @State private var itemPendingDelete: LibraryItem?
 
     var body: some View {
 
@@ -19,7 +19,7 @@ struct LibraryGridView: View {
 
                 ForEach(items) { item in
 
-                    ZStack(alignment: .topTrailing) {
+                    ZStack {
 
                         //card
                         VStack(spacing: 8) {
@@ -42,41 +42,60 @@ struct LibraryGridView: View {
                                 total: item.totalCount
                             )
                             .frame(width: 100)
-                            .onTapGesture { // progress only goes up for now
-                                item.currentProgress += 1
-                            }
-                        }
-                        .frame(width: 140, height: 180)
-                        .background(Color(.systemGray6))
-                        .cornerRadius(12)
 
-                        // favorite button as a star
+                            ProgressInputView(item: item)
+                        }
+                        .frame(width: 140, height: 195)
+                        .background(Color.libraryCard)
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.libraryStroke, lineWidth: 1)
+                        )
+                        .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 2)
+
+                        // top-left delete stays inside card
+                        if isEditing {
+                            Button {
+                                itemPendingDelete = item
+                            } label: {
+                                Text("Delete")
+                                    .font(.caption2)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 4)
+                                    .background(Color.libraryDanger)
+                                    .foregroundStyle(.white)
+                                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                            .padding(8)
+                        }
+
+                        // top-right favorite stays inside card
                         Button {
-                            item.isFavorite.toggle()
+                            if isEditing {
+                                isEditing = false
+                            } else {
+                                item.isFavorite.toggle()
+                            }
                         } label: {
                             Image(systemName:
                                 item.isFavorite ? "star.fill" : "star"
                             )
-                            .foregroundStyle(.yellow)
-                            .padding(8)
+                            .foregroundStyle(Color(hex: "#F2B705"))
                         }
-
-                        // delete by holding down
-                        if isEditing {
-                            Button {
-                                context.delete(item)
-                            } label: {
-                                Image(systemName: "minus.circle.fill")
-                                    .foregroundStyle(.red)
-                                    .background(.white)
-                                    .clipShape(Circle())
-                            }
-                            .offset(x: -125, y: -7) //location of delete button
-                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                        .padding(8)
                     }
+                    .frame(width: 140, height: 195)
+                    .clipped()
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        selectedItem = item
+                        if isEditing {
+                            isEditing = false
+                        } else {
+                            selectedItem = item
+                        }
                     }
                     .onLongPressGesture {
                         isEditing = true
@@ -85,6 +104,38 @@ struct LibraryGridView: View {
             }
             .padding()
         }
+        .onTapGesture {
+            if isEditing {
+                isEditing = false
+            }
+        }
+        .alert("Delete this item?", isPresented: deleteAlertBinding) {
+            Button("Cancel", role: .cancel) {
+                itemPendingDelete = nil
+            }
+            Button("Delete", role: .destructive) {
+                if let itemPendingDelete {
+                    context.delete(itemPendingDelete)
+                }
+                itemPendingDelete = nil
+            }
+        } message: {
+            if let itemPendingDelete {
+                Text(itemPendingDelete.title)
+            } else {
+                Text("This action cannot be undone.")
+            }
+        }
+    }
+
+    private var deleteAlertBinding: Binding<Bool> {
+        Binding(
+            get: { itemPendingDelete != nil },
+            set: { showing in
+                if !showing {
+                    itemPendingDelete = nil
+                }
+            }
+        )
     }
 }
-

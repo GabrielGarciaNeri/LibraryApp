@@ -45,8 +45,31 @@ class LibraryItem {
         self.isFavorite = isFavorite
         self.lastUpdated = lastUpdated
     }
+
+    func adjustProgress(by amount: Int) {
+        if totalCount < 0 {
+            totalCount = 0
+        }
+
+        let nextValue = currentProgress + amount
+        currentProgress = min(max(nextValue, 0), totalCount)
+        lastUpdated = .now
+    }
+
+    func setCurrentProgress(_ value: Int) {
+        if totalCount < 0 {
+            totalCount = 0
+        }
+
+        currentProgress = min(max(value, 0), totalCount)
+        lastUpdated = .now
+    }
+
+    func setTotalCount(_ value: Int) {
+        totalCount = max(value, 0)
+        currentProgress = min(max(currentProgress, 0), totalCount)
+        lastUpdated = .now
+    }
 }
-
-
 
 

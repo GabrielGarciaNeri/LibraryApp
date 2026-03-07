@@ -17,9 +17,12 @@ struct CategoriesView: View {
 
                     CategoryDetailView(category: category)
                 }
+                .listRowBackground(Color.libraryCard)
+                .listRowSeparatorTint(Color.libraryStroke)
             }
+            .scrollContentBackground(.hidden)
+            .background(Color.libraryBackground)
             .navigationTitle("Categories")
         }
     }
 }
-

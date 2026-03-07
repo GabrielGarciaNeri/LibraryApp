@@ -22,8 +22,8 @@ struct CategoryChipsView: View {
                             .padding(.vertical, 8)
                             .background(
                                 selected == category
-                                ? Color.accentColor
-                                : Color(.systemGray5)
+                                ? Color.libraryAccent
+                                : Color.libraryChipIdle
                             )
                             .foregroundColor(
                                 selected == category
@@ -31,6 +31,10 @@ struct CategoryChipsView: View {
                                 : .primary
                             )
                             .clipShape(Capsule())
+                            .overlay(
+                                Capsule()
+                                    .stroke(Color.libraryStroke, lineWidth: 1)
+                            )
                     }
                 }
             }

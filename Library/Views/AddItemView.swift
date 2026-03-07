@@ -87,6 +87,8 @@ struct AddItemView: View {
 
     // MARK: - Save Function
     private func saveItem() {
+        let safeTotal = max(totalCount, 0)
+        let safeCurrent = min(max(currentProgress, 0), safeTotal)
 
         let newItem = LibraryItem(
             title: title,
@@ -94,7 +96,8 @@ struct AddItemView: View {
             shortDescription: descriptionText,
             category: category,
             subcategory: subcategory,
-            totalCount: totalCount,
+            totalCount: safeTotal,
+            currentProgress: safeCurrent,
             isFavorite: isFavorite
         )
 
@@ -102,4 +105,3 @@ struct AddItemView: View {
         dismiss()
     }
 }
-

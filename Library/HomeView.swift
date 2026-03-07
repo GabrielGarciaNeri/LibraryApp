@@ -3,7 +3,15 @@ import SwiftData
 
 struct HomeView: View {
     
-    @Environment(\.modelContext) private var context
+    enum SortOption: String, CaseIterable {
+        case titleAZ = "Title A-Z"
+        case titleZA = "Title Z-A"
+        case authorAZ = "Author A-Z"
+        case authorZA = "Author Z-A"
+        case progressLowHigh = "Progress Low-High"
+        case progressHighLow = "Progress High-Low"
+    }
+
     @Query private var items: [LibraryItem]
     
     enum LibraryMode {
@@ -17,7 +25,7 @@ struct HomeView: View {
     @State private var showAddScreen = false
     @State private var searchText = ""
     @State private var selectedMainCategory: String = "All"
-    @State private var pendingDeleteID: PersistentIdentifier?
+    @State private var selectedSort: SortOption = .titleAZ
     @State private var selectedItem: LibraryItem?
     @State private var isGridEditing: Bool = false
     
@@ -35,6 +43,7 @@ struct HomeView: View {
                 $0.title.localizedCaseInsensitiveContains(searchText) ||
                 $0.author.localizedCaseInsensitiveContains(searchText)
             }
+            .sorted(by: sortComparator)
     }
     
     // MARK: BODY
@@ -54,7 +63,6 @@ struct HomeView: View {
                         LibraryGridView(
                             items: filteredItems,
                             selectedItem: $selectedItem,
-                            pendingDeleteID: $pendingDeleteID,
                             isEditing: $isGridEditing
                         )
                     } else {
@@ -71,6 +79,7 @@ struct HomeView: View {
                 //                    listView
                 //                }
             }
+            .background(Color.libraryBackground)
             .navigationTitle("My Library")
             
             // MARK: TOOLBAR
@@ -96,11 +105,30 @@ struct HomeView: View {
                             .padding(.horizontal, 10)
                             .frame(width: 260)
                             .transition(.move(edge: .trailing))
+
+                            Menu {
+                                sortMenuContent
+                            } label: {
+                                Image(systemName: "line.3.horizontal.decrease.circle")
+                            }
                             
                         } else {
+
+                            if showGrid && isGridEditing {
+                                Button("Done") {
+                                    isGridEditing = false
+                                }
+                            }
+
+                            Menu {
+                                sortMenuContent
+                            } label: {
+                                Image(systemName: "line.3.horizontal.decrease.circle")
+                            }
                             
                             Button {
                                 showGrid.toggle()
+                                isGridEditing = false
                             } label: {
                                 Image(systemName:
                                         showGrid
@@ -131,168 +159,67 @@ struct HomeView: View {
             .navigationDestination(item: $selectedItem) {
                 ItemDetailView(item: $0)
             }
+            .onDisappear {
+                isGridEditing = false
+            }
         }
     }
-    
-    
-    
-    //    // MARK: List View
-    //    private var listView: some View {
-    //
-    //        List {
-    //            ForEach(filteredItems) { item in
-    //
-    //                VStack(alignment: .leading, spacing: 6) {
-    //
-    //                    HStack {
-    //                        Text(item.title)
-    //                            .font(.headline)
-    //
-    //                        Spacer()
-    //
-    //                        Button {
-    //                            item.isFavorite.toggle()
-    //                        } label: {
-    //                            Image(systemName:
-    //                                item.isFavorite ? "star.fill":"star")
-    //                                .font(.title3)
-    //                                .foregroundStyle(.yellow)
-    //                        }
-    //                        .buttonStyle(.plain)
-    //                    }
-    //
-    //                    Text(item.author)
-    //                        .foregroundColor(.gray)
-    //
-    //                    ProgressBarView(
-    //                        current: item.currentProgress,
-    //                        total: item.totalCount
-    //                    )
-    //                    .onTapGesture {
-    //                        item.currentProgress += 1
-    //                    }
-    //                }
-    //                .contentShape(Rectangle())
-    //                .onTapGesture {
-    //                    selectedItem = item
-    //                }
-    //            }
-    //            .onDelete { indexSet in
-    //                for i in indexSet {
-    //                    context.delete(filteredItems[i])
-    //                }
-    //            }
-    //        }
-    //    }
-    //    // MARK: Grid View
-    //    private var gridView: some View {
-    //
-    //        ScrollView {
-    //
-    //            LazyVGrid(columns: [GridItem(.adaptive(minimum: 130))]) {
-    //
-    //                ForEach(filteredItems) { item in
-    //
-    //                    ZStack(alignment: .topLeading) {
-    //
-    //                        VStack(spacing: 8) {
-    //
-    //                            Image(systemName:"book.fill")
-    //                                .resizable()
-    //                                .scaledToFit()
-    //                                .frame(height:70)
-    //
-    //                            Text(item.title)
-    //                                .font(.headline)
-    //                                .lineLimit(2)
-    //
-    //                            Text(item.author)
-    //                                .font(.caption)
-    //                                .foregroundColor(.gray)
-    //
-    //                            ProgressBarView(
-    //                                current: item.currentProgress,
-    //                                total: item.totalCount
-    //                            )
-    //                            .frame(width: 100) // narrower progress bar
-    //                            .onTapGesture { //progress of book only add at the moment
-    //                                item.currentProgress += 1
-    //                            }
-    //                        }
-    //                        .frame(width:140,height:180)
-    //                        .background(Color(.systemGray6))
-    //                        .cornerRadius(12)
-    //
-    //                        // favorite top
-    //                        VStack {
-    //                            HStack {
-    //
-    //                                Button {
-    //                                    item.isFavorite.toggle()
-    //                                } label: {
-    //                                    Image(systemName:
-    //                                        item.isFavorite
-    //                                        ? "star.fill":"star")
-    //                                        .font(.title3)
-    //                                        .foregroundStyle(.yellow)
-    //                                }
-    //                            }
-    //                        }
-    //                        .padding(8)
-    //
-    //                        // DELETE MODE
-    //                        if mode == .deleting {
-    //
-    //                            Button {
-    //
-    //                                if pendingDeleteID ==
-    //                                    item.persistentModelID {
-    //
-    //                                    context.delete(item)
-    //                                    pendingDeleteID = nil
-    //
-    //                                } else {
-    //                                    pendingDeleteID =
-    //                                    item.persistentModelID
-    //                                }
-    //
-    //                            } label: {
-    //
-    //                                if pendingDeleteID ==
-    //                                    item.persistentModelID {
-    //
-    //                                    Text("Delete")
-    //                                        .font(.caption2)
-    //                                        .padding(6)
-    //                                        .background(.red)
-    //                                        .foregroundColor(.white)
-    //                                        .cornerRadius(6)
-    //
-    //                                } else {
-    //
-    //                                    Image(systemName:"minus.circle.fill")
-    //                                        .foregroundColor(.red)
-    //                                        .background(.white)
-    //                                        .clipShape(Circle())
-    //                                }
-    //                            }
-    //                            .padding(6)
-    //                        }
-    //                    }
-    //                    .contentShape(Rectangle())
-    //                    .onTapGesture {
-    //                        selectedItem = item
-    //                    }
-    //                    .onLongPressGesture {
-    //                        mode = .deleting
-    //                    }
-    //                }
-    //            }
-    //            .padding()
-    //        }
-    //    }
-    //
-    //}
-    
-}
 
+    @ViewBuilder
+    private var sortMenuContent: some View {
+        ForEach(SortOption.allCases, id: \.self) { option in
+            Button {
+                selectedSort = option
+            } label: {
+                if selectedSort == option {
+                    Label(option.rawValue, systemImage: "checkmark")
+                } else {
+                    Text(option.rawValue)
+                }
+            }
+        }
+    }
+//MARK: - Filtering and Sorting
+    private func sortComparator(_ lhs: LibraryItem, _ rhs: LibraryItem) -> Bool {
+        switch selectedSort {
+        case .titleAZ:
+            let compare = lhs.title.localizedCaseInsensitiveCompare(rhs.title)
+            if compare == .orderedSame {
+                return lhs.author.localizedCaseInsensitiveCompare(rhs.author) == .orderedAscending
+            }
+            return compare == .orderedAscending
+        case .titleZA:
+            let compare = lhs.title.localizedCaseInsensitiveCompare(rhs.title)
+            if compare == .orderedSame {
+                return lhs.author.localizedCaseInsensitiveCompare(rhs.author) == .orderedDescending
+            }
+            return compare == .orderedDescending
+        case .authorAZ:
+            let compare = lhs.author.localizedCaseInsensitiveCompare(rhs.author)
+            if compare == .orderedSame {
+                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+            }
+            return compare == .orderedAscending
+        case .authorZA:
+            let compare = lhs.author.localizedCaseInsensitiveCompare(rhs.author)
+            if compare == .orderedSame {
+                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedDescending
+            }
+            return compare == .orderedDescending
+        case .progressLowHigh:
+            let lhsValue = Double(lhs.currentProgress) / Double(max(lhs.totalCount, 1))
+            let rhsValue = Double(rhs.currentProgress) / Double(max(rhs.totalCount, 1))
+            if lhsValue == rhsValue {
+                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+            }
+            return lhsValue < rhsValue
+        case .progressHighLow:
+            let lhsValue = Double(lhs.currentProgress) / Double(max(lhs.totalCount, 1))
+            let rhsValue = Double(rhs.currentProgress) / Double(max(rhs.totalCount, 1))
+            if lhsValue == rhsValue {
+                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+            }
+            return lhsValue > rhsValue
+        }
+    }
+}

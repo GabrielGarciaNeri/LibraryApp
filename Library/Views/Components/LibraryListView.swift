@@ -38,7 +38,7 @@ struct LibraryListView: View {
                                 item.isFavorite ? "star.fill" : "star"
                             )
                             .font(.title3)
-                            .foregroundStyle(.yellow)
+                            .foregroundStyle(Color(hex: "#F2B705"))
                         }
                         .buttonStyle(.plain) //needed if not star bugs
                     }
@@ -47,11 +47,12 @@ struct LibraryListView: View {
                         current: item.currentProgress,
                         total: item.totalCount
                     )
-                    .onTapGesture { //only goes up at the moment
-                        item.currentProgress += 1
-                    }
+
+                    ProgressInputView(item: item)
                 }
                 .contentShape(Rectangle())
+                .listRowBackground(Color.libraryCard)
+                .listRowSeparatorTint(Color.libraryStroke)
                 .onTapGesture {
                     selectedItem = item
                 }
@@ -62,5 +63,7 @@ struct LibraryListView: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Color.libraryBackground)
     }
 }

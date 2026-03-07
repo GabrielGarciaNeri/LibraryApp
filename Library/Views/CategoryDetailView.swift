@@ -7,15 +7,26 @@ struct CategoryDetailView: View {
     @Query private var items: [LibraryItem]
 
     var filtered: [LibraryItem] {
-        items.filter { $0.category == category }
+        items
+            .filter { $0.category == category }
+            .sorted { lhs, rhs in
+                let titleCompare = lhs.title.localizedCaseInsensitiveCompare(rhs.title)
+                if titleCompare == .orderedSame {
+                    return lhs.author.localizedCaseInsensitiveCompare(rhs.author) == .orderedAscending
+                }
+                return titleCompare == .orderedAscending
+            }
     }
 
     var body: some View {
 
         List(filtered) { item in
             Text(item.title)
+                .listRowBackground(Color.libraryCard)
+                .listRowSeparatorTint(Color.libraryStroke)
         }
+        .scrollContentBackground(.hidden)
+        .background(Color.libraryBackground)
         .navigationTitle(category)
     }
 }
-

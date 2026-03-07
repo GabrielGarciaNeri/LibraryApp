@@ -120,6 +120,8 @@ struct ItemDetailView: View {
             //save (apply edits)
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
+                    let safeTotal = max(totalCount, 0)
+                    let safeCurrent = min(max(currentProgress, 0), safeTotal)
 
                     //apply draft
                     item.title = title
@@ -129,8 +131,8 @@ struct ItemDetailView: View {
                     item.category = category
                     item.status = status
 
-                    item.currentProgress = currentProgress
-                    item.totalCount = totalCount
+                    item.totalCount = safeTotal
+                    item.currentProgress = safeCurrent
 
                     item.isFavorite = isFavorite
 
@@ -140,4 +142,3 @@ struct ItemDetailView: View {
         }
     }
 }
-

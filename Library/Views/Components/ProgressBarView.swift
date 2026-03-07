@@ -13,24 +13,16 @@ struct ProgressBarView: View {
 
     var body: some View {
 
-        VStack(alignment: .leading, spacing: 4) {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.libraryChipIdle)
 
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-
-                    Capsule()
-                        .fill(Color.gray.opacity(0.2))
-
-                    Capsule()
-                        .fill(Color.accentColor)
-                        .frame(width: geo.size.width * progress)
-                }
+                Capsule()
+                    .fill(Color.libraryAccent)
+                    .frame(width: geo.size.width * progress)
             }
-            .frame(height: 6)
-
-            Text("\(current)/\(total)")
-                .font(.caption2)
-                .foregroundColor(.secondary)
         }
+        .frame(height: 6)
     }
 }
